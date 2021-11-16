@@ -91,6 +91,7 @@ var Defaults = Config{
 	RPCGasCap:   50000000,
 	GPO:         FullNodeGPO,
 	RPCTxFeeCap: 1, // 1 ether
+	ConsensusEngine:CreateDefaultConsensusEngine,
 }
 
 func init() {
@@ -113,6 +114,8 @@ func init() {
 		Defaults.Ethash.DatasetDir = filepath.Join(home, ".ethash")
 	}
 }
+
+type CreateConsensusEngine func (*node.Node, *params.ChainConfig, *ethash.Config, []string, bool, ethdb.Database) consensus.Engine
 
 //go:generate gencodec -type Config -formats toml -out gen_config.go
 
@@ -200,10 +203,12 @@ type Config struct {
 
 	// Berlin block override (TODO: remove after the fork)
 	OverrideLondon *big.Int `toml:",omitempty"`
+
+	ConsensusEngine CreateConsensusEngine
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain configuration.
-func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
+func CreateDefaultConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Clique != nil {
 		return clique.New(chainConfig.Clique, db)
