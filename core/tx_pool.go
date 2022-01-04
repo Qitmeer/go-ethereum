@@ -986,6 +986,10 @@ func (pool *TxPool) Has(hash common.Hash) bool {
 	return pool.all.Get(hash) != nil
 }
 
+func (pool *TxPool) RemoveTx(hash common.Hash, outofbound bool) {
+	pool.removeTx(hash,outofbound)
+}
+
 // removeTx removes a single transaction from the queue, moving all subsequent
 // transactions back to the future queue.
 func (pool *TxPool) removeTx(hash common.Hash, outofbound bool) {
