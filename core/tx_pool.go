@@ -987,6 +987,8 @@ func (pool *TxPool) Has(hash common.Hash) bool {
 }
 
 func (pool *TxPool) RemoveTx(hash common.Hash, outofbound bool) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 	pool.removeTx(hash,outofbound)
 }
 
