@@ -24,4 +24,6 @@ type IMiner interface {
 	EnablePreseal()
 	DisablePreseal()
 	SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription
+	GetSealingBlockAsync(parent common.Hash, timestamp uint64, coinbase common.Address, random common.Hash, noTxs bool) (chan *types.Block, error)
+	GetSealingBlockSync(parent common.Hash, timestamp uint64, coinbase common.Address, random common.Hash, noTxs bool) (*types.Block, error)
 }
