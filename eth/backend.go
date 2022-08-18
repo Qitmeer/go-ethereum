@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -141,13 +140,13 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
-	log.Info("")
-	log.Info(strings.Repeat("-", 153))
-	for _, line := range strings.Split(chainConfig.String(), "\n") {
-		log.Info(line)
-	}
-	log.Info(strings.Repeat("-", 153))
-	log.Info("")
+	//log.Info("")
+	//log.Info(strings.Repeat("-", 153))
+	//for _, line := range strings.Split(chainConfig.String(), "\n") {
+	//	log.Info(line)
+	//}
+	//log.Info(strings.Repeat("-", 153))
+	//log.Info("")
 
 	if err := pruner.RecoverPruning(stack.ResolvePath(""), chainDb, stack.ResolvePath(config.TrieCleanCacheJournal)); err != nil {
 		log.Error("Failed to recover state", "error", err)
@@ -243,7 +242,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	if config.Miner.External == nil {
 		eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock)
-	}else{
+	} else {
 		eth.miner = config.Miner.External
 	}
 
