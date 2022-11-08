@@ -94,6 +94,7 @@ var Defaults = Config{
 	RPCEVMTimeout: 5 * time.Second,
 	GPO:           FullNodeGPO,
 	RPCTxFeeCap:   1, // 1 ether
+	ConsensusEngine:CreateDefaultConsensusEngine,
 }
 
 func init() {
@@ -116,6 +117,8 @@ func init() {
 		Defaults.Ethash.DatasetDir = filepath.Join(home, ".ethash")
 	}
 }
+
+type CreateConsensusEngine func (*node.Node, *params.ChainConfig, *ethash.Config, []string, bool, ethdb.Database) consensus.Engine
 
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
 
@@ -214,10 +217,12 @@ type Config struct {
 
 	// OverrideTerminalTotalDifficultyPassed (TODO: remove after the fork)
 	OverrideTerminalTotalDifficultyPassed *bool `toml:",omitempty"`
+
+	ConsensusEngine CreateConsensusEngine
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain configuration.
-func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
+func CreateDefaultConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	var engine consensus.Engine
 	if chainConfig.Clique != nil {

@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -87,7 +86,7 @@ type Ethereum struct {
 
 	APIBackend *EthAPIBackend
 
-	miner     *miner.Miner
+	miner     miner.IMiner
 	gasPrice  *big.Int
 	etherbase common.Address
 
@@ -139,13 +138,13 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
-	log.Info("")
-	log.Info(strings.Repeat("-", 153))
-	for _, line := range strings.Split(chainConfig.String(), "\n") {
-		log.Info(line)
-	}
-	log.Info(strings.Repeat("-", 153))
-	log.Info("")
+	//log.Info("")
+	//log.Info(strings.Repeat("-", 153))
+	//for _, line := range strings.Split(chainConfig.String(), "\n") {
+	//	log.Info(line)
+	//}
+	//log.Info(strings.Repeat("-", 153))
+	//log.Info("")
 
 	if err := pruner.RecoverPruning(stack.ResolvePath(""), chainDb, stack.ResolvePath(config.TrieCleanCacheJournal)); err != nil {
 		log.Error("Failed to recover state", "error", err)
@@ -157,7 +156,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		chainDb:           chainDb,
 		eventMux:          stack.EventMux(),
 		accountManager:    stack.AccountManager(),
-		engine:            ethconfig.CreateConsensusEngine(stack, chainConfig, &ethashConfig, config.Miner.Notify, config.Miner.Noverify, chainDb),
+		engine:            config.ConsensusEngine(stack, chainConfig, &ethashConfig, config.Miner.Notify, config.Miner.Noverify, chainDb),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
@@ -239,7 +238,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil, err
 	}
 
-	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock)
+	if config.Miner.External == nil {
+		eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock)
+	} else {
+		eth.miner = config.Miner.External
+	}
+
 	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, nil}
@@ -485,7 +489,7 @@ func (s *Ethereum) StopMining() {
 }
 
 func (s *Ethereum) IsMining() bool      { return s.miner.Mining() }
-func (s *Ethereum) Miner() *miner.Miner { return s.miner }
+func (s *Ethereum) Miner() miner.IMiner { return s.miner }
 
 func (s *Ethereum) AccountManager() *accounts.Manager  { return s.accountManager }
 func (s *Ethereum) BlockChain() *core.BlockChain       { return s.blockchain }

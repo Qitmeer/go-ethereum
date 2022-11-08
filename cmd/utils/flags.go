@@ -1994,8 +1994,10 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend
 			Fatalf("Failed to register the Ethereum service: %v", err)
 		}
 		stack.RegisterAPIs(tracers.APIs(backend.ApiBackend))
-		if err := lescatalyst.Register(stack, backend); err != nil {
-			Fatalf("Failed to register the Engine API service: %v", err)
+		if backend.BlockChain().Config().TerminalTotalDifficulty != nil {
+			if err := lescatalyst.Register(stack, backend); err != nil {
+				Fatalf("Failed to register the Engine API service: %v", err)
+			}
 		}
 		return backend.ApiBackend, nil
 	}
@@ -2009,8 +2011,10 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend
 			Fatalf("Failed to create the LES server: %v", err)
 		}
 	}
-	if err := ethcatalyst.Register(stack, backend); err != nil {
-		Fatalf("Failed to register the Engine API service: %v", err)
+	if backend.BlockChain().Config().TerminalTotalDifficulty != nil {
+		if err := ethcatalyst.Register(stack, backend); err != nil {
+			Fatalf("Failed to register the Engine API service: %v", err)
+		}
 	}
 	stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
 	return backend.APIBackend, backend
@@ -2179,7 +2183,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	if ctx.Bool(FakePoWFlag.Name) {
 		ethashConf.PowMode = ethash.ModeFake
 	}
-	engine = ethconfig.CreateConsensusEngine(stack, config, &ethashConf, nil, false, chainDb)
+	engine = ethconfig.CreateDefaultConsensusEngine(stack, config, &ethashConf, nil, false, chainDb)
 	if gcmode := ctx.String(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
