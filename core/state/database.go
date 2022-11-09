@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ethereum/go-ethereum/common"
+	lru2 "github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -121,14 +121,14 @@ func NewDatabaseWithConfig(db ethdb.Database, config *trie.Config) Database {
 	return &cachingDB{
 		db:            trie.NewDatabaseWithConfig(db, config),
 		codeSizeCache: csc,
-		codeCache:     fastcache.New(codeCacheSize),
+		codeCache:     lru2.NewSizeConstrainedLRU(codeCacheSize),
 	}
 }
 
 type cachingDB struct {
 	db            *trie.Database
 	codeSizeCache *lru.Cache
-	codeCache     *fastcache.Cache
+	codeCache     *lru2.SizeConstrainedLRU
 }
 
 // OpenTrie opens the main account trie at a specific root hash.
@@ -161,12 +161,12 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 
 // ContractCode retrieves a particular contract's code.
 func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error) {
-	if code := db.codeCache.Get(nil, codeHash.Bytes()); len(code) > 0 {
+	if code := db.codeCache.Get(codeHash); len(code) > 0 {
 		return code, nil
 	}
 	code := rawdb.ReadCode(db.db.DiskDB(), codeHash)
 	if len(code) > 0 {
-		db.codeCache.Set(codeHash.Bytes(), code)
+		db.codeCache.Add(codeHash, code)
 		db.codeSizeCache.Add(codeHash, len(code))
 		return code, nil
 	}
@@ -177,12 +177,12 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 // code can't be found in the cache, then check the existence with **new**
 // db scheme.
 func (db *cachingDB) ContractCodeWithPrefix(addrHash, codeHash common.Hash) ([]byte, error) {
-	if code := db.codeCache.Get(nil, codeHash.Bytes()); len(code) > 0 {
+	if code := db.codeCache.Get(codeHash); len(code) > 0 {
 		return code, nil
 	}
 	code := rawdb.ReadCodeWithPrefix(db.db.DiskDB(), codeHash)
 	if len(code) > 0 {
-		db.codeCache.Set(codeHash.Bytes(), code)
+		db.codeCache.Add(codeHash, code)
 		db.codeSizeCache.Add(codeHash, len(code))
 		return code, nil
 	}
