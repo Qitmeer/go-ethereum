@@ -90,6 +90,7 @@ var Defaults = Config{
 	RPCEVMTimeout:           5 * time.Second,
 	GPO:                     FullNodeGPO,
 	RPCTxFeeCap:             1, // 1 ether
+	ConsensusEngine:CreateDefaultConsensusEngine,
 }
 
 func init() {
@@ -113,6 +114,7 @@ func init() {
 	}
 }
 
+type CreateConsensusEngine func (*node.Node, *ethash.Config, *params.CliqueConfig, []string, bool, ethdb.Database) consensus.Engine
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
 
 // Config contains configuration options for of the ETH and LES protocols.
@@ -207,10 +209,12 @@ type Config struct {
 
 	// OverrideShanghai (TODO: remove after the fork)
 	OverrideShanghai *uint64 `toml:",omitempty"`
+
+	ConsensusEngine CreateConsensusEngine
 }
 
-// CreateConsensusEngine creates a consensus engine for the given chain configuration.
-func CreateConsensusEngine(stack *node.Node, ethashConfig *ethash.Config, cliqueConfig *params.CliqueConfig, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
+// CreateDefaultConsensusEngine creates a consensus engine for the given chain configuration.
+func CreateDefaultConsensusEngine(stack *node.Node, ethashConfig *ethash.Config, cliqueConfig *params.CliqueConfig, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	var engine consensus.Engine
 	if cliqueConfig != nil {
