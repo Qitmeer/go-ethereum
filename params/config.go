@@ -472,6 +472,7 @@ func (c *CliqueConfig) String() string {
 
 // Description returns a human-readable description of ChainConfig.
 func (c *ChainConfig) Description() string {
+	return ""
 	var banner string
 
 	// Create some basinc network config output
