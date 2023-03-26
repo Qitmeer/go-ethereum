@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/crypto/sha3"
@@ -478,6 +479,8 @@ func (c *ChainConfig) Description() string {
 	network := NetworkNames[c.ChainID.String()]
 	if network == "" {
 		network = "unknown"
+	}else if strings.HasPrefix(network,"Description:") {
+		return strings.TrimLeft(network,"Description:")
 	}
 	banner += fmt.Sprintf("Chain ID:  %v (%s)\n", c.ChainID, network)
 	switch {
