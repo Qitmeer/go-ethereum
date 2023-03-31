@@ -1056,6 +1056,12 @@ func (pool *TxPool) Has(hash common.Hash) bool {
 	return pool.all.Get(hash) != nil
 }
 
+func (pool *TxPool) RemoveTx(hash common.Hash, outofbound bool) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	pool.removeTx(hash,outofbound)
+}
+
 // removeTx removes a single transaction from the queue, moving all subsequent
 // transactions back to the future queue.
 // Returns the number of transactions removed from the pending queue.
