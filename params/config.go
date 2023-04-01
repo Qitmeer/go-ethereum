@@ -482,6 +482,18 @@ func (c *ChainConfig) Description() string {
 	}
 	banner += fmt.Sprintf("Chain ID:  %v (%s)\n", c.ChainID, network)
 	switch {
+	case IsQngNetwork(c.ChainID):
+		banner += "Consensus: MeerDAG (proof-of-work)\n"
+		return banner
+	case IsAmanaNetwork(c.ChainID):
+		banner += "Consensus: Amana (proof-of-authority)\n"
+		return banner
+	case IsFlanaNetwork(c.ChainID):
+		banner += "Consensus: Flana (rollup)\n"
+		return banner
+	case IsMizanaNetwork(c.ChainID):
+		banner += "Consensus: Mizana (ZK rollup)\n"
+		return banner
 	case c.Ethash != nil:
 		if c.TerminalTotalDifficulty == nil {
 			banner += "Consensus: Ethash (proof-of-work)\n"
@@ -498,18 +510,6 @@ func (c *ChainConfig) Description() string {
 		} else {
 			banner += "Consensus: Beacon (proof-of-stake), merged from Clique (proof-of-authority)\n"
 		}
-	case IsQngNetwork(c.ChainID):
-		banner += "Consensus: MeerDAG (proof-of-work)\n"
-		return banner
-	case IsAmanaNetwork(c.ChainID):
-		banner += "Consensus: Amana (proof-of-authority)\n"
-		return banner
-	case IsFlanaNetwork(c.ChainID):
-		banner += "Consensus: Flana (rollup)\n"
-		return banner
-	case IsMizanaNetwork(c.ChainID):
-		banner += "Consensus: Mizana (ZK rollup)\n"
-		return banner
 	default:
 		banner += "Consensus: unknown\n"
 	}
