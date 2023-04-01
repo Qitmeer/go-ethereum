@@ -86,40 +86,40 @@ func init() {
 }
 
 func IsQngNetwork(chainID *big.Int) bool {
-	if chainID == QngMainnetChainConfig.ChainID ||
-		chainID == QngTestnetChainConfig.ChainID ||
-		chainID == QngMixnetChainConfig.ChainID ||
-		chainID == QngPrivnetChainConfig.ChainID {
+	if chainID.Cmp(QngMainnetChainConfig.ChainID) == 0 ||
+		chainID.Cmp(QngTestnetChainConfig.ChainID) == 0 ||
+		chainID.Cmp(QngMixnetChainConfig.ChainID) == 0 ||
+		chainID.Cmp(QngPrivnetChainConfig.ChainID) == 0 {
 		return true
 	}
 	return false
 }
 
 func IsAmanaNetwork(chainID *big.Int) bool {
-	if chainID == AmanaChainConfig.ChainID ||
-		chainID == AmanaTestnetChainConfig.ChainID ||
-		chainID == AmanaMixnetChainConfig.ChainID ||
-		chainID == AmanaPrivnetChainConfig.ChainID {
+	if chainID.Cmp(AmanaChainConfig.ChainID) == 0 ||
+		chainID.Cmp(AmanaTestnetChainConfig.ChainID) == 0 ||
+		chainID.Cmp(AmanaMixnetChainConfig.ChainID) == 0 ||
+		chainID.Cmp(AmanaPrivnetChainConfig.ChainID) == 0 {
 		return true
 	}
 	return false
 }
 
 func IsFlanaNetwork(chainID *big.Int) bool {
-	if chainID == FlanaChainConfig.ChainID ||
-		chainID == FlanaTestnetChainConfig.ChainID ||
-		chainID == FlanaMixnetChainConfig.ChainID ||
-		chainID == FlanaPrivnetChainConfig.ChainID {
+	if chainID.Cmp(FlanaChainConfig.ChainID) == 0 ||
+		chainID.Cmp(FlanaTestnetChainConfig.ChainID) == 0 ||
+		chainID.Cmp(FlanaMixnetChainConfig.ChainID) == 0 ||
+		chainID.Cmp(FlanaPrivnetChainConfig.ChainID) == 0 {
 		return true
 	}
 	return false
 }
 
 func IsMizanaNetwork(chainID *big.Int) bool {
-	if chainID == MizanaChainConfig.ChainID ||
-		chainID == MizanaTestnetChainConfig.ChainID ||
-		chainID == MizanaMixnetChainConfig.ChainID ||
-		chainID == MizanaPrivnetChainConfig.ChainID {
+	if chainID.Cmp(MizanaChainConfig.ChainID) == 0 ||
+		chainID.Cmp(MizanaTestnetChainConfig.ChainID) == 0 ||
+		chainID.Cmp(MizanaMixnetChainConfig.ChainID) == 0 ||
+		chainID.Cmp(MizanaPrivnetChainConfig.ChainID) == 0 {
 		return true
 	}
 	return false
