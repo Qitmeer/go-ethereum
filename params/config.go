@@ -364,6 +364,18 @@ func (c *ChainConfig) Description() string {
 	}
 	banner += fmt.Sprintf("Chain ID:  %v (%s)\n", c.ChainID, network)
 	switch {
+	case IsQngNetwork(c.ChainID):
+		banner += "Consensus: MeerDAG (proof-of-work)\n"
+		return QngEIPsBanner(banner, c)
+	case IsAmanaNetwork(c.ChainID):
+		banner += "Consensus: Amana (proof-of-authority)\n"
+		return QngEIPsBanner(banner, c)
+	case IsFlanaNetwork(c.ChainID):
+		banner += "Consensus: Flana (rollup)\n"
+		return QngEIPsBanner(banner, c)
+	case IsMizanaNetwork(c.ChainID):
+		banner += "Consensus: Mizana (ZK rollup)\n"
+		return QngEIPsBanner(banner, c)
 	case c.Ethash != nil:
 		if c.TerminalTotalDifficulty == nil {
 			banner += "Consensus: Ethash (proof-of-work)\n"
