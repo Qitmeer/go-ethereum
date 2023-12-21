@@ -400,7 +400,7 @@ func (b *EthAPIBackend) CurrentHeader() *types.Header {
 	return b.eth.blockchain.CurrentHeader()
 }
 
-func (b *EthAPIBackend) Miner() *miner.Miner {
+func (b *EthAPIBackend) Miner() miner.IMiner {
 	return b.eth.Miner()
 }
 
