@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/holiman/uint256"
 	"math/big"
 	"time"
 )
@@ -23,12 +24,13 @@ type IMiner interface {
 	PendingBlockAndReceipts() (*types.Block, types.Receipts)
 	SetEtherbase(addr common.Address)
 	SetGasCeil(ceil uint64)
+	SetGasTip(tip *big.Int) error
 	SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription
 	BuildPayload(args *BuildPayloadArgs) (*Payload, error)
 }
 
 type TransactionsByPriceAndNonce interface {
-	Peek() *txpool.LazyTransaction
+	Peek() (*txpool.LazyTransaction, *uint256.Int)
 	Shift()
 	Pop()
 }
