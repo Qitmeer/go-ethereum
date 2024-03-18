@@ -67,7 +67,10 @@ var Defaults = Config{
 	RPCEVMTimeout:      5 * time.Second,
 	GPO:                FullNodeGPO,
 	RPCTxFeeCap:        1, // 1 ether
+	ConsensusEngine:    CreateDefaultConsensusEngine,
 }
+
+type CreateConsensusEngine func(*params.ChainConfig, ethdb.Database) (consensus.Engine, error)
 
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
 
@@ -159,12 +162,14 @@ type Config struct {
 
 	// OverrideVerkle (TODO: remove after the fork)
 	OverrideVerkle *uint64 `toml:",omitempty"`
+
+	ConsensusEngine CreateConsensusEngine
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain config.
 // Clique is allowed for now to live standalone, but ethash is forbidden and can
 // only exist on already merged networks.
-func CreateConsensusEngine(config *params.ChainConfig, db ethdb.Database) (consensus.Engine, error) {
+func CreateDefaultConsensusEngine(config *params.ChainConfig, db ethdb.Database) (consensus.Engine, error) {
 	// If proof-of-authority is requested, set it up
 	if config.Clique != nil {
 		return beacon.New(clique.New(config.Clique, db)), nil
