@@ -48,6 +48,8 @@ type Config struct {
 	GasCeil             uint64         // Target gas ceiling for mined blocks.
 	GasPrice            *big.Int       // Minimum gas price for mining a transaction
 	Recommit            time.Duration  // The time interval for miner to re-create mining work.
+	External  			IMiner         // External miner
+
 }
 
 // DefaultConfig contains default settings for miner.
