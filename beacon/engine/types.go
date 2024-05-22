@@ -75,6 +75,7 @@ type ExecutableData struct {
 	Withdrawals   []*types.Withdrawal `json:"withdrawals"`
 	BlobGasUsed   *uint64             `json:"blobGasUsed"`
 	ExcessBlobGas *uint64             `json:"excessBlobGas"`
+	Difficulty    *big.Int            `json:"difficulty"`
 }
 
 // JSON type overrides for executableData.
@@ -237,7 +238,7 @@ func ExecutableDataToBlock(params ExecutableData, versionedHashes []common.Hash,
 		TxHash:           types.DeriveSha(types.Transactions(txs), trie.NewStackTrie(nil)),
 		ReceiptHash:      params.ReceiptsRoot,
 		Bloom:            types.BytesToBloom(params.LogsBloom),
-		Difficulty:       common.Big0,
+		Difficulty:       params.Difficulty,
 		Number:           new(big.Int).SetUint64(params.Number),
 		GasLimit:         params.GasLimit,
 		GasUsed:          params.GasUsed,
@@ -278,6 +279,7 @@ func BlockToExecutableData(block *types.Block, fees *big.Int, sidecars []*types.
 		Withdrawals:   block.Withdrawals(),
 		BlobGasUsed:   block.BlobGasUsed(),
 		ExcessBlobGas: block.ExcessBlobGas(),
+		Difficulty:    block.Difficulty(),
 	}
 	bundle := BlobsBundleV1{
 		Commitments: make([]hexutil.Bytes, 0),
