@@ -88,7 +88,7 @@ type Ethereum struct {
 
 	APIBackend *EthAPIBackend
 
-	miner    miner.IMiner
+	miner    *miner.Miner
 	gasPrice *big.Int
 
 	networkID     uint64
@@ -263,11 +263,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil, err
 	}
 
-	if config.Miner.External == nil {
-		eth.miner = miner.New(eth, config.Miner, eth.engine)
-	} else {
-		eth.miner = config.Miner.External
-	}
+	eth.miner = miner.New(eth, config.Miner, eth.engine)
 
 	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
@@ -356,7 +352,7 @@ func (s *Ethereum) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *Ethereum) Miner() miner.IMiner { return s.miner }
+func (s *Ethereum) Miner() *miner.Miner { return s.miner }
 
 func (s *Ethereum) AccountManager() *accounts.Manager  { return s.accountManager }
 func (s *Ethereum) BlockChain() *core.BlockChain       { return s.blockchain }
