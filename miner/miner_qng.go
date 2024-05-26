@@ -1,28 +1,29 @@
 package miner
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/holiman/uint256"
-	"math/big"
 )
 
-type IMiner interface {
-	SetExtra(extra []byte) error
-	Pending() (*types.Block, types.Receipts, *state.StateDB)
-	SetGasCeil(ceil uint64)
-	SetGasTip(tip *big.Int) error
-	BuildPayload(args *BuildPayloadArgs) (*Payload, error)
-}
+func (payload *Payload) ResolveFullBlock() *types.Block {
+	payload.lock.Lock()
+	defer payload.lock.Unlock()
 
-type TransactionsByPriceAndNonce interface {
-	Peek() (*txpool.LazyTransaction, *uint256.Int)
-	Shift()
-	Pop()
-}
-
-func NewTransactionsByPriceAndNonce(signer types.Signer, txs map[common.Address][]*txpool.LazyTransaction, baseFee *big.Int) TransactionsByPriceAndNonce {
-	return newTransactionsByPriceAndNonce(signer, txs, baseFee)
+	if payload.full == nil {
+		select {
+		case <-payload.stop:
+			return nil
+		default:
+		}
+		// Wait the full payload construction. Note it might block
+		// forever if Resolve is called in the meantime which
+		// terminates the background construction process.
+		payload.cond.Wait()
+	}
+	// Terminate the background payload construction
+	select {
+	case <-payload.stop:
+	default:
+		close(payload.stop)
+	}
+	return payload.full
 }
