@@ -142,7 +142,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine, err := ethconfig.CreateConsensusEngine(chainConfig, chainDb)
+	if config.ConsensusEngine == nil {
+		config.ConsensusEngine = ethconfig.CreateDefaultConsensusEngine
+	}
+	engine, err := config.ConsensusEngine(chainConfig, chainDb)
 	if err != nil {
 		return nil, err
 	}
@@ -257,6 +260,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 
 	eth.miner = miner.New(eth, config.Miner, eth.engine)
+
 	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, nil}
