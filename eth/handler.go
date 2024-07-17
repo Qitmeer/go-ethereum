@@ -125,6 +125,11 @@ type handler struct {
 
 	handlerStartCh chan struct{}
 	handlerDoneCh  chan struct{}
+
+	// qng
+	blockFetcher  *fetcher.BlockFetcher
+	minedBlockSub *event.TypeMuxSubscription
+	chainSync     *chainSyncer
 }
 
 // newHandler returns a handler for all Ethereum chain management protocol.
@@ -193,6 +198,30 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		return h.txpool.Add(txs, false, false)
 	}
 	h.txFetcher = fetcher.NewTxFetcher(h.txpool.Has, addTxs, fetchTx, h.removePeer)
+
+	// qng
+	// Construct the fetcher (short sync)
+	validator := func(header *types.Header) error {
+		return h.chain.Engine().VerifyHeader(h.chain, header)
+	}
+	heighter := func() uint64 {
+		return h.chain.CurrentBlock().Number.Uint64()
+	}
+	inserter := func(blocks types.Blocks) (int, error) {
+		// If snap sync is running, deny importing weird blocks. This is a problematic
+		// clause when starting up a new network, because snap-syncing miners might not
+		// accept each others' blocks until a restart. Unfortunately we haven't figured
+		// out a way yet where nodes can decide unilaterally whether the network is new
+		// or not. This should be fixed if we figure out a solution.
+		if !h.synced.Load() {
+			log.Warn("Syncing, discarded propagated block", "number", blocks[0].Number(), "hash", blocks[0].Hash())
+			return 0, nil
+		}
+		return h.chain.InsertChain(blocks)
+	}
+	h.blockFetcher = fetcher.NewBlockFetcher(false, nil, h.chain.GetBlockByHash, validator, h.BroadcastBlock, heighter, nil, inserter, h.removePeer)
+
+	h.chainSync = newChainSyncer(h)
 	return h, nil
 }
 
@@ -434,9 +463,23 @@ func (h *handler) Start(maxPeers int) {
 	// start peer handler tracker
 	h.wg.Add(1)
 	go h.protoTracker()
+
+	// qng
+	// broadcast mined blocks
+	h.wg.Add(1)
+	h.minedBlockSub = h.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	go h.minedBroadcastLoop()
+
+	// start sync handlers
+	h.wg.Add(1)
+	go h.chainSync.loop()
 }
 
 func (h *handler) Stop() {
+	// qng -----------------------
+	h.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
+	// ---------------------------
+
 	h.txsSub.Unsubscribe() // quits txBroadcastLoop
 	h.txFetcher.Stop()
 	h.downloader.Terminate()
