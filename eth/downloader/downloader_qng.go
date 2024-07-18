@@ -3,7 +3,6 @@
 package downloader
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/protocols/eth"
@@ -48,7 +47,6 @@ func (d *Downloader) fetchQngHeadersByHash(p *peerConnection, hash common.Hash, 
 		return nil, nil, err
 	}
 	defer func() {
-		fmt.Println(time.Now().String(), "测试3")
 		req.Close()
 	}()
 
