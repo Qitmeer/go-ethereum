@@ -3,6 +3,7 @@
 package downloader
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/protocols/eth"
@@ -33,6 +34,9 @@ func (d *Downloader) SyncQng(peerid string, mode SyncMode, hash common.Hash) err
 	if metas[0] != hash {
 		log.Error("Received invalid sync target", "want", hash, "have", metas[0])
 		return err
+	}
+	if d.skeleton.filler.(*beaconBackfiller).filling {
+		return fmt.Errorf("backfiller is filling:%s", hash.String())
 	}
 	return d.BeaconSync(mode, headers[0], headers[0])
 }
