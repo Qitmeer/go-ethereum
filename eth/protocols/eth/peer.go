@@ -64,6 +64,11 @@ type Peer struct {
 
 	term chan struct{} // Termination channel to stop the broadcasters
 	lock sync.RWMutex  // Mutex protecting the internal fields
+
+	// qng
+	knownBlocks     *knownCache            // Set of block hashes known to be known by this peer
+	queuedBlocks    chan *blockPropagation // Queue of blocks to broadcast to the peer
+	queuedBlockAnns chan *types.Block      // Queue of blocks to announce to the peer
 }
 
 // NewPeer creates a wrapper for a network connection and negotiated  protocol
@@ -87,6 +92,12 @@ func NewPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, txpool TxPool) *Pe
 	go peer.broadcastTransactions()
 	go peer.announceTransactions()
 	go peer.dispatcher()
+
+	// qng
+	peer.knownBlocks = newKnownCache(maxKnownBlocks)
+	peer.queuedBlocks = make(chan *blockPropagation, maxQueuedBlocks)
+	peer.queuedBlockAnns = make(chan *types.Block, maxQueuedBlockAnns)
+	go peer.broadcastBlocks()
 
 	return peer
 }
