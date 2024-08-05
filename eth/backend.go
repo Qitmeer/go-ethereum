@@ -368,7 +368,7 @@ func (s *Ethereum) BloomIndexer() *core.ChainIndexer   { return s.bloomIndexer }
 // network protocols to start.
 func (s *Ethereum) Protocols() []p2p.Protocol {
 	var backend eth.Backend
-	if params.IsAmanaNetwork(s.config.Genesis.Config.ChainID) {
+	if s.config.Genesis != nil && params.IsAmanaNetwork(s.config.Genesis.Config.ChainID) {
 		backend = (*qngHandler)(s.handler)
 	} else {
 		backend = (*ethHandler)(s.handler)
