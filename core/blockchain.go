@@ -712,11 +712,14 @@ func (bc *BlockChain) rewindPathHead(head *types.Header, root common.Hash) (*typ
 
 		// noState represents if the target state requested for search
 		// is unavailable and impossible to be recovered.
-		noState = !bc.HasState(root) && !bc.stateRecoverable(root)
+		noState = root == common.Hash{}
 
 		start  = time.Now() // Timestamp the rewinding is restarted
 		logged = time.Now() // Timestamp last progress log was printed
 	)
+	if !noState {
+		noState = !bc.HasState(root) && !bc.stateRecoverable(root)
+	}
 	// Rewind the head block tag until an available state is found.
 	for {
 		logger := log.Trace
