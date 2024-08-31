@@ -5,124 +5,92 @@ import (
 	"math/big"
 )
 
+const (
+	Meer   = "meer"
+	Amana  = "amana"
+	Flana  = "flana"
+	Mizana = "mizana"
+)
+
 type MeerChainConfig struct {
-	ChainID *big.Int // chainId identifies the current chain and is used for replay protection
+	ChainID   *big.Int // chainId identifies the current chain and is used for replay protection
+	Name      string
+	Type      string
+	Consensus string // TODO:reserve
+}
+
+func (mcc MeerChainConfig) String() string {
+	return fmt.Sprintf("Name:%s,ID:%s,Type:%s", mcc.Name, mcc.ChainID.String(), mcc.Type)
 }
 
 var (
 	QngMainnetChainConfig = &MeerChainConfig{
 		ChainID: big.NewInt(813),
+		Name:    "qng",
+		Type:    Meer,
 	}
 	QngTestnetChainConfig = &MeerChainConfig{
 		ChainID: big.NewInt(8131),
+		Name:    "qng-test",
+		Type:    Meer,
 	}
 	QngMixnetChainConfig = &MeerChainConfig{
 		ChainID: big.NewInt(8132),
+		Name:    "qng-mix",
+		Type:    Meer,
 	}
 	QngPrivnetChainConfig = &MeerChainConfig{
 		ChainID: big.NewInt(8133),
+		Name:    "qng-priv",
+		Type:    Meer,
 	}
-
 	AmanaChainConfig = &MeerChainConfig{
 		ChainID: big.NewInt(8134),
+		Name:    "amana",
+		Type:    Amana,
 	}
-	AmanaTestnetChainConfig = &MeerChainConfig{
-		ChainID: big.NewInt(81341),
-	}
-	AmanaMixnetChainConfig = &MeerChainConfig{
-		ChainID: big.NewInt(81342),
-	}
-	AmanaPrivnetChainConfig = &MeerChainConfig{
-		ChainID: big.NewInt(81343),
-	}
-
 	FlanaChainConfig = &MeerChainConfig{
 		ChainID: big.NewInt(8135),
+		Name:    "flana",
+		Type:    Flana,
 	}
-	FlanaTestnetChainConfig = &MeerChainConfig{
-		ChainID: big.NewInt(81351),
-	}
-	FlanaMixnetChainConfig = &MeerChainConfig{
-		ChainID: big.NewInt(81352),
-	}
-	FlanaPrivnetChainConfig = &MeerChainConfig{
-		ChainID: big.NewInt(81353),
-	}
-
 	MizanaChainConfig = &MeerChainConfig{
 		ChainID: big.NewInt(8136),
+		Name:    "mizana",
+		Type:    Mizana,
 	}
-	MizanaTestnetChainConfig = &MeerChainConfig{
-		ChainID: big.NewInt(81361),
-	}
-	MizanaMixnetChainConfig = &MeerChainConfig{
-		ChainID: big.NewInt(81362),
-	}
-	MizanaPrivnetChainConfig = &MeerChainConfig{
-		ChainID: big.NewInt(81363),
+
+	meerChainConfigs = []*MeerChainConfig{
+		QngMainnetChainConfig,
+		QngTestnetChainConfig,
+		QngMixnetChainConfig,
+		QngPrivnetChainConfig,
+		AmanaChainConfig,
+		FlanaChainConfig,
+		MizanaChainConfig,
 	}
 )
 
 func init() {
-	NetworkNames[QngMainnetChainConfig.ChainID.String()] = "qng"
-	NetworkNames[QngTestnetChainConfig.ChainID.String()] = "qng-test"
-	NetworkNames[QngMixnetChainConfig.ChainID.String()] = "qng-mix"
-	NetworkNames[QngPrivnetChainConfig.ChainID.String()] = "qng-priv"
-
-	NetworkNames[AmanaChainConfig.ChainID.String()] = "amana"
-	NetworkNames[AmanaTestnetChainConfig.ChainID.String()] = "amana-test"
-	NetworkNames[AmanaMixnetChainConfig.ChainID.String()] = "amana-mix"
-	NetworkNames[AmanaPrivnetChainConfig.ChainID.String()] = "amana-priv"
-
-	NetworkNames[FlanaChainConfig.ChainID.String()] = "flana"
-	NetworkNames[FlanaTestnetChainConfig.ChainID.String()] = "flana-test"
-	NetworkNames[FlanaMixnetChainConfig.ChainID.String()] = "flana-mix"
-	NetworkNames[FlanaPrivnetChainConfig.ChainID.String()] = "flana-priv"
-
-	NetworkNames[MizanaChainConfig.ChainID.String()] = "mizana"
-	NetworkNames[MizanaTestnetChainConfig.ChainID.String()] = "mizana-test"
-	NetworkNames[MizanaMixnetChainConfig.ChainID.String()] = "mizana-mix"
-	NetworkNames[MizanaPrivnetChainConfig.ChainID.String()] = "mizana-priv"
+	for _, c := range meerChainConfigs {
+		NetworkNames[c.ChainID.String()] = c.Name
+	}
 }
 
 func IsQngNetwork(chainID *big.Int) bool {
-	if chainID.Cmp(QngMainnetChainConfig.ChainID) == 0 ||
-		chainID.Cmp(QngTestnetChainConfig.ChainID) == 0 ||
-		chainID.Cmp(QngMixnetChainConfig.ChainID) == 0 ||
-		chainID.Cmp(QngPrivnetChainConfig.ChainID) == 0 {
-		return true
-	}
-	return false
+	return IsNetwork(chainID, Meer)
 }
 
 func IsAmanaNetwork(chainID *big.Int) bool {
-	if chainID.Cmp(AmanaChainConfig.ChainID) == 0 ||
-		chainID.Cmp(AmanaTestnetChainConfig.ChainID) == 0 ||
-		chainID.Cmp(AmanaMixnetChainConfig.ChainID) == 0 ||
-		chainID.Cmp(AmanaPrivnetChainConfig.ChainID) == 0 {
-		return true
-	}
-	return false
+	return IsNetwork(chainID, Amana)
 }
 
 func IsFlanaNetwork(chainID *big.Int) bool {
-	if chainID.Cmp(FlanaChainConfig.ChainID) == 0 ||
-		chainID.Cmp(FlanaTestnetChainConfig.ChainID) == 0 ||
-		chainID.Cmp(FlanaMixnetChainConfig.ChainID) == 0 ||
-		chainID.Cmp(FlanaPrivnetChainConfig.ChainID) == 0 {
-		return true
-	}
-	return false
+	return IsNetwork(chainID, Flana)
 }
 
 func IsMizanaNetwork(chainID *big.Int) bool {
-	if chainID.Cmp(MizanaChainConfig.ChainID) == 0 ||
-		chainID.Cmp(MizanaTestnetChainConfig.ChainID) == 0 ||
-		chainID.Cmp(MizanaMixnetChainConfig.ChainID) == 0 ||
-		chainID.Cmp(MizanaPrivnetChainConfig.ChainID) == 0 {
-		return true
-	}
-	return false
+	return IsNetwork(chainID, Mizana)
 }
 
 func QngEIPsBanner(banner string, c *ChainConfig) string {
@@ -184,4 +152,24 @@ func QngEIPsBanner(banner string, c *ChainConfig) string {
 	}
 
 	return banner
+}
+
+func AddMeerChainConfig(cfg *MeerChainConfig) error {
+	for _, c := range meerChainConfigs {
+		if c.ChainID.Cmp(cfg.ChainID) == 0 {
+			return fmt.Errorf("It already exists:%s, but now add %s", c.String(), cfg.String())
+		}
+	}
+	meerChainConfigs = append(meerChainConfigs, cfg)
+	NetworkNames[cfg.ChainID.String()] = cfg.Name
+	return nil
+}
+
+func IsNetwork(chainID *big.Int, mtype string) bool {
+	for _, c := range meerChainConfigs {
+		if chainID.Cmp(c.ChainID) == 0 && c.Type == mtype {
+			return true
+		}
+	}
+	return false
 }
