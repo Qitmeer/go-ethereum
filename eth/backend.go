@@ -140,7 +140,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine, err := ethconfig.CreateConsensusEngine(chainConfig, chainDb)
+	if config.ConsensusEngine == nil {
+		config.ConsensusEngine = ethconfig.CreateDefaultConsensusEngine
+	}
+	engine, err := config.ConsensusEngine(chainConfig, chainDb)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +346,13 @@ func (s *Ethereum) BloomIndexer() *core.ChainIndexer   { return s.bloomIndexer }
 // Protocols returns all the currently configured
 // network protocols to start.
 func (s *Ethereum) Protocols() []p2p.Protocol {
-	protos := eth.MakeProtocols((*ethHandler)(s.handler), s.networkID, s.discmix)
+	var backend eth.Backend
+	if s.config.Genesis != nil && params.IsAmanaNetwork(s.config.Genesis.Config.ChainID) {
+		backend = (*qngHandler)(s.handler)
+	} else {
+		backend = (*ethHandler)(s.handler)
+	}
+	protos := eth.MakeProtocols(backend, s.networkID, s.discmix)
 	if s.config.SnapshotCache > 0 {
 		protos = append(protos, snap.MakeProtocols((*snapHandler)(s.handler))...)
 	}
