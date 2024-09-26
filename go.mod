@@ -1,12 +1,13 @@
 module github.com/ethereum/go-ethereum
 
-go 1.22
+go 1.22.3
 
-toolchain go1.22.0
+toolchain go1.23.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.2.0
 	github.com/Microsoft/go-winio v0.6.2
+	github.com/Qitmeer/go-secp256k1 v0.5.1
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/aws/aws-sdk-go-v2 v1.21.2
 	github.com/aws/aws-sdk-go-v2/config v1.18.45
