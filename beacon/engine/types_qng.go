@@ -2,10 +2,11 @@ package engine
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
-	"math/big"
 )
 
 func ExecutableDataToBlockQng(params ExecutableData, versionedHashes []common.Hash, beaconRoot *common.Hash) (*types.Block, error) {
@@ -61,9 +62,18 @@ func ExecutableDataToBlockQng(params ExecutableData, versionedHashes []common.Ha
 		BlobGasUsed:      params.BlobGasUsed,
 		ParentBeaconRoot: beaconRoot,
 	}
+
 	block := types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs, Uncles: nil, Withdrawals: params.Withdrawals})
 	if block.Hash() != params.BlockHash {
-		return nil, fmt.Errorf("blockhash mismatch, want %x, got %x", params.BlockHash, block.Hash())
+		// Check if amana.propose(addr, true) has been called
+		header.Nonce = types.EncodeNonce(18446744073709551615) // 0xffffffffffffffff to vote on adding a new signer
+		blockWithNonce := types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs, Uncles: nil, Withdrawals: params.Withdrawals})
+
+		if blockWithNonce.Hash() != params.BlockHash {
+			return nil, fmt.Errorf("blockhash mismatch, want %x, got %x", params.BlockHash, block.Hash())
+		} else {
+			return blockWithNonce, nil
+		}
 	}
 	return block, nil
 }

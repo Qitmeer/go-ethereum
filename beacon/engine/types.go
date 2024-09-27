@@ -77,6 +77,7 @@ type ExecutableData struct {
 	BlobGasUsed   *uint64             `json:"blobGasUsed"`
 	ExcessBlobGas *uint64             `json:"excessBlobGas"`
 	Difficulty    *big.Int            `json:"difficulty"`
+	Nonce         types.BlockNonce    `json:"nonce"`
 }
 
 // JSON type overrides for executableData.
