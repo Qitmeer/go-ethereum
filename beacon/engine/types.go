@@ -78,7 +78,8 @@ type ExecutableData struct {
 	ExcessBlobGas    *uint64                 `json:"excessBlobGas"`
 	Deposits         types.Deposits          `json:"depositRequests"`
 	ExecutionWitness *types.ExecutionWitness `json:"executionWitness,omitempty"`
-	Difficulty    *big.Int
+	Difficulty       *big.Int
+	Nonce            types.BlockNonce
 }
 
 // JSON type overrides for executableData.
@@ -267,6 +268,7 @@ func ExecutableDataToBlock(data ExecutableData, versionedHashes []common.Hash, b
 		BlobGasUsed:      data.BlobGasUsed,
 		ParentBeaconRoot: beaconRoot,
 		RequestsHash:     requestsHash,
+		Nonce:            data.Nonce,
 	}
 	block := types.NewBlockWithHeader(header)
 	block = block.WithBody(types.Body{Transactions: txs, Uncles: nil, Withdrawals: data.Withdrawals, Requests: requests})
@@ -300,6 +302,7 @@ func BlockToExecutableData(block *types.Block, fees *big.Int, sidecars []*types.
 		ExcessBlobGas:    block.ExcessBlobGas(),
 		ExecutionWitness: block.ExecutionWitness(),
 		Difficulty:       block.Difficulty(),
+		Nonce:            block.Header().Nonce,
 	}
 	bundle := BlobsBundleV1{
 		Commitments: make([]hexutil.Bytes, 0),

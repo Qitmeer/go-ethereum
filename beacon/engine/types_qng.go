@@ -60,6 +60,7 @@ func ExecutableDataToBlockQng(params ExecutableData, versionedHashes []common.Ha
 		ExcessBlobGas:    params.ExcessBlobGas,
 		BlobGasUsed:      params.BlobGasUsed,
 		ParentBeaconRoot: beaconRoot,
+		Nonce:            params.Nonce,
 	}
 	block := types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs, Uncles: nil, Withdrawals: params.Withdrawals})
 	if block.Hash() != params.BlockHash {
