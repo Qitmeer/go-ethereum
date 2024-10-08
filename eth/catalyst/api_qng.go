@@ -4,12 +4,14 @@ import (
 	"errors"
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/miner"
+	"github.com/ethereum/go-ethereum/rlp"
 	"strconv"
 	"time"
 )
@@ -99,7 +101,7 @@ func (api *ConsensusAPI) ForkchoiceUpdatedQng(update engine.ForkchoiceStateV1, p
 			log.Warn("Final block not available in database", "hash", update.FinalizedBlockHash)
 			return engine.STATUS_INVALID, engine.InvalidForkChoiceState.With(errors.New("final block not available in database"))
 		} else if rawdb.ReadCanonicalHash(api.eth.ChainDb(), finalBlock.NumberU64()) != update.FinalizedBlockHash {
-			log.Warn("Final block not in canonical chain", "number", block.NumberU64(), "hash", update.HeadBlockHash)
+			log.Warn("Final block not in canonical chain", "number", finalBlock.NumberU64(), "hash", update.FinalizedBlockHash)
 			return engine.STATUS_INVALID, engine.InvalidForkChoiceState.With(errors.New("final block not in canonical chain"))
 		}
 		// Set the finalized block
@@ -138,7 +140,7 @@ func (api *ConsensusAPI) ForkchoiceUpdatedQng(update engine.ForkchoiceStateV1, p
 		if api.localBlocks.has(id) {
 			return valid(&id), nil
 		}
-		payload, err := api.eth.Miner().BuildPayload(args)
+		payload, err := api.eth.Miner().BuildPayload(args, false)
 		if err != nil {
 			log.Error("Failed to build payload", "err", err)
 			return valid(nil), engine.InvalidPayloadAttributes.With(err)
@@ -183,7 +185,7 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 			bgu = strconv.Itoa(int(*params.BlobGasUsed))
 		}
 		ebg := "nil"
-		if params.BlobGasUsed != nil {
+		if params.ExcessBlobGas != nil {
 			ebg = strconv.Itoa(int(*params.ExcessBlobGas))
 		}
 		log.Warn("Invalid NewPayload params",
@@ -203,6 +205,7 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 			"params.ExcessBlobGas", ebg,
 			"len(params.Transactions)", len(params.Transactions),
 			"len(params.Withdrawals)", len(params.Withdrawals),
+			"len(params.Deposits)", len(params.Deposits),
 			"beaconRoot", beaconRoot,
 			"error", err)
 		return api.invalid(err, nil), nil
@@ -250,8 +253,9 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 		return engine.PayloadStatusV1{Status: engine.ACCEPTED}, nil
 	}
 	log.Trace("Inserting block without sethead", "hash", block.Hash(), "number", block.Number())
-	if err := api.eth.BlockChain().InsertBlockWithoutSetHead(block); err != nil {
-		log.Warn("NewPayloadV1: inserting block failed", "error", err)
+	proofs, err := api.eth.BlockChain().InsertBlockWithoutSetHead(block, false)
+	if err != nil {
+		log.Warn("NewPayload: inserting block failed", "error", err)
 
 		api.invalidLock.Lock()
 		api.invalidBlocksHits[block.Hash()] = 1
@@ -261,7 +265,13 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 		return api.invalid(err, parent.Header()), nil
 	}
 	hash := block.Hash()
-	return engine.PayloadStatusV1{Status: engine.VALID, LatestValidHash: &hash}, nil
+	// If witness collection was requested, inject that into the result too
+	var ow *hexutil.Bytes
+	if proofs != nil {
+		ow = new(hexutil.Bytes)
+		*ow, _ = rlp.EncodeToBytes(proofs)
+	}
+	return engine.PayloadStatusV1{Status: engine.VALID, Witness: ow, LatestValidHash: &hash}, nil
 }
 
 func NewConsensusAPIQng(eth *eth.Ethereum) *ConsensusAPI {
