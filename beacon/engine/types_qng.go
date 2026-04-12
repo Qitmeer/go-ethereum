@@ -2,14 +2,15 @@ package engine
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
-	"math/big"
 )
 
 func ExecutableDataToBlockQng(params ExecutableData, versionedHashes []common.Hash, beaconRoot *common.Hash) (*types.Block, error) {
-	txs, err := decodeTransactions(params.Transactions)
+	txs, err := DecodeTransactions(params.Transactions)
 	if err != nil {
 		return nil, err
 	}

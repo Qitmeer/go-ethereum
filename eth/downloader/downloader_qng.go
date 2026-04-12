@@ -6,14 +6,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/protocols/eth"
 	"github.com/ethereum/go-ethereum/log"
-	"time"
 )
 
-func (d *Downloader) SyncQng(peerid string, mode SyncMode, hash common.Hash) error {
+func (d *Downloader) SyncQng(peerid string, hash common.Hash) error {
 	d.peers.lock.RLock()
 	var peer *peerConnection
 	for _, peer = range d.peers.peers {
@@ -40,7 +41,7 @@ func (d *Downloader) SyncQng(peerid string, mode SyncMode, hash common.Hash) err
 	if d.skeleton.filler.(*beaconBackfiller).filling {
 		return fmt.Errorf("backfiller is filling:%s", hash.String())
 	}
-	return d.BeaconSync(mode, headers[0], headers[0])
+	return d.BeaconSync(headers[0], headers[0])
 }
 
 func (d *Downloader) fetchQngHeadersByHash(p *peerConnection, hash common.Hash, amount int, skip int, reverse bool) ([]*types.Header, []common.Hash, error) {
@@ -84,8 +85,8 @@ func (d *Downloader) fetchQngHeadersByHash(p *peerConnection, hash common.Hash, 
 	}
 }
 
-func (d *Downloader) SyncQngWaitPeers(mode SyncMode, hash common.Hash, stop chan struct{}, timeout time.Duration) error {
-	log.Info("Waiting for peers to retrieve sync target", "hash", hash.String(), "mode", mode.String())
+func (d *Downloader) SyncQngWaitPeers(hash common.Hash, stop chan struct{}, timeout time.Duration) error {
+	log.Info("Waiting for peers to retrieve sync target", "hash", hash.String())
 	ctx, can := context.WithTimeout(context.Background(), timeout)
 	defer can()
 	for {
@@ -120,6 +121,6 @@ func (d *Downloader) SyncQngWaitPeers(mode SyncMode, hash common.Hash, stop chan
 			time.Sleep(time.Second)
 			continue
 		}
-		return d.BeaconSync(mode, headers[0], headers[0])
+		return d.BeaconSync(headers[0], headers[0])
 	}
 }

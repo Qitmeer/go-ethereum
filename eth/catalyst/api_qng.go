@@ -1,19 +1,23 @@
 package catalyst
 
 import (
+	"context"
 	"errors"
+	"strconv"
+	"time"
+
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
+	"github.com/ethereum/go-ethereum/internal/telemetry"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/miner"
 	"github.com/ethereum/go-ethereum/rlp"
-	"strconv"
-	"time"
 )
 
 func (api *ConsensusAPI) ForkchoiceUpdatedQng(update engine.ForkchoiceStateV1, payloadAttributes *engine.PayloadAttributes) (engine.ForkChoiceResponse, error) {
@@ -39,12 +43,9 @@ func (api *ConsensusAPI) ForkchoiceUpdatedQng(update engine.ForkchoiceStateV1, p
 		if res := api.checkInvalidAncestor(update.HeadBlockHash, update.HeadBlockHash); res != nil {
 			return engine.ForkChoiceResponse{PayloadStatus: *res, PayloadID: nil}, nil
 		}
-		// If the head hash is unknown (was not given to us in a newPayload request),
-		// we cannot resolve the header, so not much to do. This could be extended in
-		// the future to resolve from the `eth` network, but it's an unexpected case
-		// that should be fixed, not papered over.
 		header := api.remoteBlocks.get(update.HeadBlockHash)
 		if header == nil {
+			// The head hash is unknown locally, try to resolve it from the `eth` network
 			log.Warn("Fetching the unknown forkchoice head from network", "hash", update.HeadBlockHash)
 			retrievedHead, err := api.eth.Downloader().GetHeader(update.HeadBlockHash)
 			if err != nil {
@@ -57,7 +58,9 @@ func (api *ConsensusAPI) ForkchoiceUpdatedQng(update engine.ForkchoiceStateV1, p
 		// If the finalized hash is known, we can direct the downloader to move
 		// potentially more data to the freezer from the get go.
 		finalized := api.remoteBlocks.get(update.FinalizedBlockHash)
-
+		if finalized == nil {
+			finalized = api.eth.BlockChain().GetHeaderByHash(update.FinalizedBlockHash)
+		}
 		// Header advertised via a past newPayload request. Start syncing to it.
 		context := []interface{}{"number", header.Number, "hash", header.Hash()}
 		if update.FinalizedBlockHash != (common.Hash{}) {
@@ -68,7 +71,7 @@ func (api *ConsensusAPI) ForkchoiceUpdatedQng(update engine.ForkchoiceStateV1, p
 			}
 		}
 		log.Info("Forkchoice requested sync to new head", context...)
-		if err := api.eth.Downloader().BeaconSync(api.eth.SyncMode(), header, finalized); err != nil {
+		if err := api.eth.Downloader().BeaconSync(header, finalized); err != nil {
 			return engine.STATUS_SYNCING, err
 		}
 		return engine.STATUS_SYNCING, nil
@@ -139,6 +142,7 @@ func (api *ConsensusAPI) ForkchoiceUpdatedQng(update engine.ForkchoiceStateV1, p
 			Random:       payloadAttributes.Random,
 			Withdrawals:  payloadAttributes.Withdrawals,
 			BeaconRoot:   payloadAttributes.BeaconRoot,
+			SlotNum:      payloadAttributes.SlotNumber,
 			Version:      payloadVersion,
 		}
 		id := args.Id()
@@ -147,7 +151,7 @@ func (api *ConsensusAPI) ForkchoiceUpdatedQng(update engine.ForkchoiceStateV1, p
 		if api.localBlocks.has(id) {
 			return valid(&id), nil
 		}
-		payload, err := api.eth.Miner().BuildPayload(args, false)
+		payload, err := api.eth.Miner().BuildPayload(context.Background(), args, false)
 		if err != nil {
 			log.Error("Failed to build payload", "err", err)
 			return valid(nil), engine.InvalidPayloadAttributes.With(err)
@@ -181,6 +185,15 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 	//    sequentially.
 	// Hence, we use a lock here, to be sure that the previous call has finished before we
 	// check whether we already have the block locally.
+	var attrs = []telemetry.Attribute{
+		telemetry.Int64Attribute("block.number", int64(params.Number)),
+		telemetry.StringAttribute("block.hash", params.BlockHash.Hex()),
+		telemetry.Int64Attribute("tx.count", int64(len(params.Transactions))),
+	}
+	ctx := context.Background()
+	var err error
+	ctx, _, spanEnd := telemetry.StartSpan(ctx, "engine.newPayload", attrs...)
+	defer spanEnd(&err)
 	api.newPayloadLock.Lock()
 	defer api.newPayloadLock.Unlock()
 
@@ -194,6 +207,10 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 		ebg := "nil"
 		if params.ExcessBlobGas != nil {
 			ebg = strconv.Itoa(int(*params.ExcessBlobGas))
+		}
+		slotNum := "nil"
+		if params.SlotNumber != nil {
+			slotNum = strconv.Itoa(int(*params.SlotNumber))
 		}
 		log.Warn("Invalid NewPayload params",
 			"params.Number", params.Number,
@@ -210,6 +227,7 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 			"params.BaseFeePerGas", params.BaseFeePerGas,
 			"params.BlobGasUsed", bgu,
 			"params.ExcessBlobGas", ebg,
+			"params.SlotNumber", slotNum,
 			"len(params.Transactions)", len(params.Transactions),
 			"len(params.Withdrawals)", len(params.Withdrawals),
 			"beaconRoot", beaconRoot,
@@ -241,14 +259,14 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 		return api.delayPayloadImport(block), nil
 	}
 	if block.Time() <= parent.Time() {
-		log.Warn("Invalid timestamp", "parent", block.Time(), "block", block.Time())
+		log.Warn("Invalid timestamp", "parent", parent.Time(), "block", block.Time())
 		return api.invalid(errors.New("invalid timestamp"), parent.Header()), nil
 	}
 	// Another corner case: if the node is in snap sync mode, but the CL client
 	// tries to make it import a block. That should be denied as pushing something
 	// into the database directly will conflict with the assumptions of snap sync
 	// that it has an empty db that it can fill itself.
-	if api.eth.SyncMode() != ethconfig.FullSync {
+	if api.eth.Downloader().ConfigSyncMode() == ethconfig.SnapSync {
 		return api.delayPayloadImport(block), nil
 	}
 	if !api.eth.BlockChain().HasBlockAndState(block.ParentHash(), block.NumberU64()-1) {
@@ -257,7 +275,9 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 		return engine.PayloadStatusV1{Status: engine.ACCEPTED}, nil
 	}
 	log.Trace("Inserting block without sethead", "hash", block.Hash(), "number", block.Number())
-	proofs, err := api.eth.BlockChain().InsertBlockWithoutSetHead(block, false)
+	start := time.Now()
+	proofs, err := api.eth.BlockChain().InsertBlockWithoutSetHead(ctx, block, false)
+	processingTime := time.Since(start)
 	if err != nil {
 		log.Warn("NewPayload: inserting block failed", "error", err)
 
@@ -269,6 +289,14 @@ func (api *ConsensusAPI) NewPayloadQng(params engine.ExecutableData, versionedHa
 		return api.invalid(err, parent.Header()), nil
 	}
 	hash := block.Hash()
+
+	// Emit NewPayloadEvent for ethstats reporting
+	api.eth.BlockChain().SendNewPayloadEvent(core.NewPayloadEvent{
+		Hash:           hash,
+		Number:         block.NumberU64(),
+		ProcessingTime: processingTime,
+	})
+
 	// If witness collection was requested, inject that into the result too
 	var ow *hexutil.Bytes
 	if proofs != nil {
