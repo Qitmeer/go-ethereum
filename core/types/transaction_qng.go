@@ -3,10 +3,11 @@ package types
 import (
 	"errors"
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"math/big"
 )
 
 type PKSigner interface {
@@ -46,8 +47,9 @@ func (s EIP155Signer) GetPublicKey(tx *Transaction) ([]byte, error) {
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return nil, fmt.Errorf("%w: have %d want %d", ErrInvalidChainId, tx.ChainId(), s.chainId)
 	}
+	chainIdMul := new(big.Int).Mul(s.chainId, big.NewInt(2))
 	V, R, S := tx.RawSignatureValues()
-	V = new(big.Int).Sub(V, s.chainIdMul)
+	V = new(big.Int).Sub(V, chainIdMul)
 	V.Sub(V, big8)
 	return recoverPlainForPubK(s.Hash(tx), R, S, V, true)
 }
