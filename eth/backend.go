@@ -180,7 +180,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine, err := ethconfig.CreateConsensusEngine(chainConfig, chainDb)
+	if config.ConsensusEngine == nil {
+		config.ConsensusEngine = ethconfig.CreateDefaultConsensusEngine
+	}
+	engine, err := config.ConsensusEngine(chainConfig, chainDb)
 	if err != nil {
 		return nil, err
 	}
