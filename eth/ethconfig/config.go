@@ -79,7 +79,10 @@ var Defaults = Config{
 	TxSyncMaxTimeout:        1 * time.Minute,
 	SlowBlockThreshold:      -1, // Disabled by default; set via --debug.logslowblock flag
 	RangeLimit:              0,
+	ConsensusEngine:    CreateDefaultConsensusEngine,
 }
+
+type CreateConsensusEngine func(*params.ChainConfig, ethdb.Database) (consensus.Engine, error)
 
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
 
@@ -221,12 +224,14 @@ type Config struct {
 
 	// RangeLimit restricts the maximum range (end - start) for range queries.
 	RangeLimit uint64 `toml:",omitempty"`
+
+	ConsensusEngine CreateConsensusEngine
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain config.
 // Clique is allowed for now to live standalone, but ethash is forbidden and can
 // only exist on already merged networks.
-func CreateConsensusEngine(config *params.ChainConfig, db ethdb.Database) (consensus.Engine, error) {
+func CreateDefaultConsensusEngine(config *params.ChainConfig, db ethdb.Database) (consensus.Engine, error) {
 	if config.TerminalTotalDifficulty == nil {
 		log.Error("Geth only supports PoS networks. Please transition legacy networks using Geth v1.13.x.")
 		return nil, errors.New("'terminalTotalDifficulty' is not set in genesis block")

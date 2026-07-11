@@ -102,6 +102,8 @@ type ExecutableData struct {
 	ExcessBlobGas   *uint64              `json:"excessBlobGas"`
 	SlotNumber      *uint64              `json:"slotNumber,omitempty"`
 	BlockAccessList *bal.BlockAccessList `json:"blockAccessList,omitempty"`
+	Difficulty    *big.Int
+	Nonce         types.BlockNonce
 }
 
 // JSON type overrides for executableData.
@@ -331,7 +333,7 @@ func ExecutableDataToBlockNoHash(data ExecutableData, versionedHashes []common.H
 		TxHash:              types.DeriveSha(types.Transactions(txs), trie.NewStackTrie(nil)),
 		ReceiptHash:         data.ReceiptsRoot,
 		Bloom:               types.BytesToBloom(data.LogsBloom),
-		Difficulty:          common.Big0,
+		Difficulty:          data.Difficulty,
 		Number:              new(big.Int).SetUint64(data.Number),
 		GasLimit:            data.GasLimit,
 		GasUsed:             data.GasUsed,
@@ -346,6 +348,7 @@ func ExecutableDataToBlockNoHash(data ExecutableData, versionedHashes []common.H
 		RequestsHash:        requestsHash,
 		SlotNumber:          data.SlotNumber,
 		BlockAccessListHash: blockAccessListHash,
+		Nonce:            	 data.Nonce,
 	}
 	return types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs, Uncles: nil, Withdrawals: data.Withdrawals}), nil
 }
@@ -373,6 +376,8 @@ func BlockToExecutableData(block *types.Block, fees *big.Int, sidecars []*types.
 		ExcessBlobGas:   block.ExcessBlobGas(),
 		SlotNumber:      block.SlotNumber(),
 		BlockAccessList: block.AccessList(),
+		Difficulty:       block.Difficulty(),
+		Nonce:            block.Header().Nonce,
 	}
 
 	// Add blobs.
