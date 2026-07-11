@@ -153,9 +153,6 @@ func QngEIPsBanner(banner string, c *ChainConfig) string {
 	if c.OsakaTime != nil {
 		banner += fmt.Sprintf(" - Osaka:                      @%-10v\n", *c.OsakaTime)
 	}
-	if c.VerkleTime != nil {
-		banner += fmt.Sprintf(" - Verkle:                      @%-10v\n", *c.VerkleTime)
-	}
 	return banner
 }
 
